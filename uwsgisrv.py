@@ -39,6 +39,10 @@ def application(env, start_response):
             data['ts'] = int( dt.strftime("%s") ) * 1000
             data['date'] = dt.strftime( '%d %b' ).lower()
             data['time'] = dt.strftime( '%H:%Mz' )
+        elif type == 'qso':
+            dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
+            newItem['date'] = dt.strftime( '%d %b' ).lower()
+            newItem['time'] = dt.strftime( '%H:%Mz' )
     fp = webRoot + '/' + type + '.json'
     if not data:
         data = loadJSON( fp )

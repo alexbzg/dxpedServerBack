@@ -32,9 +32,9 @@ def application(env, start_response):
         newItem['text'] = newItem['text'][0].decode('utf-8').replace( '\r\n', '<br/>' )
     else:
         newItem = json.loads( postData )
-        if newItem.has_key( 'status' ):
-            type = 'status'
-            data = newItem['status']
+        if newItem.has_key( 'location' ):
+            type = 'location'
+            data = newItem
             dt = datetime.utcnow()
             data['ts'] = int( dt.strftime("%s") ) * 1000
             data['date'] = dt.strftime( '%d %b' ).lower()

@@ -15,13 +15,16 @@ logging.basicConfig( level = logging.DEBUG,
 conf = siteConf()
 webRoot = conf.get( 'web', 'root' )
 
+def dtFmt( dt ):
+    return dt.strftime( '%d %b' ).lower(), dt.strftime( '%H:%Mz' )
+
+
 def application(env, start_response):
     try:
         reqSize = int( env.get( 'CONTENT_LENGTH', 0 ) )
     except:
         reqSize = 0
 
-    start_response('200 OK', [('Content-Type','text/plain')])
     type = ( env["PATH_INFO"].split( '/' ) )[-1]
     postData = env['wsgi.input'].read( reqSize )
     newItem = {}
@@ -35,14 +38,13 @@ def application(env, start_response):
         if newItem.has_key( 'location' ):
             type = 'location'
             data = newItem
-            dt = datetime.utcnow()
-            data['ts'] = int( dt.strftime("%s") ) * 1000
-            data['date'] = dt.strftime( '%d %b' ).lower()
-            data['time'] = dt.strftime( '%H:%Mz' )
+            data['date'], data['time'] = dtFmt( datetime.utcnow() )
         elif type == 'qso':
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
-            newItem['date'] = dt.strftime( '%d %b' ).lower()
-            newItem['time'] = dt.strftime( '%H:%Mz' )
+            newItem['date'], newItem['time'] = dtFmt( dt )
+        elif type == 'chat':
+            newItem['date'], nwItem['time'] = dtFmt( datetime.utcnow() )
+
     fp = webRoot + '/' + type + '.json'
     if not data:
         data = loadJSON( fp )
@@ -51,5 +53,10 @@ def application(env, start_response):
         data.insert( 0, newItem )
     with open( fp, 'w' ) as f:
         f.write( json.dumps( data, ensure_ascii = False ).encode('utf-8') )
-    return 'OK'
+    if type == 'news':
+        start_response('302 Found', [('Location','http://73.com/rda/index2.html')])
+        return
+    else:
+        start_response('200 OK', [('Content-Type','text/plain')])
+        return 'OK'
        

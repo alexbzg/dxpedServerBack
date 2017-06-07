@@ -43,7 +43,7 @@ def application(env, start_response):
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
             newItem['date'], newItem['time'] = dtFmt( dt )
         elif type == 'chat':
-            newItem['date'], nwItem['time'] = dtFmt( datetime.utcnow() )
+            newItem['date'], newItem['time'] = dtFmt( datetime.utcnow() )
 
     fp = webRoot + '/' + type + '.json'
     if not data:

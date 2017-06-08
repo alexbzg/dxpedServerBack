@@ -14,6 +14,7 @@ logging.basicConfig( level = logging.DEBUG,
         datefmt='%Y-%m-%d %H:%M:%S' )
 conf = siteConf()
 webRoot = conf.get( 'web', 'root' )
+regCS = conf.get( 'web', 'regCS' ).split(',')
 
 def dtFmt( dt ):
     return dt.strftime( '%d %b' ).lower(), dt.strftime( '%H:%Mz' )
@@ -43,6 +44,15 @@ def application(env, start_response):
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
             newItem['date'], newItem['time'] = dtFmt( dt )
         elif type == 'chat':
+            newItem['cs'] = newItem['cs'].upper()
+            pwd = newItem['cs'].endswith(':123')
+            if pwd:
+                newItem['cs'] = newItem['cs'][:-4]
+                if newItem['cs'] in regCS:
+                    newItem['admin'] = True
+            if newItem['cs'] in regCS and not pwd:
+                start_response('403 Forbidden' )
+                return 'This callsign is password protected'
             newItem['date'], newItem['time'] = dtFmt( datetime.utcnow() )
 
     fp = webRoot + '/' + type + '.json'

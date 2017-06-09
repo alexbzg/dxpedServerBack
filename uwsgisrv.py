@@ -37,11 +37,19 @@ def application(env, start_response):
     else:
         newItem = json.loads( postData )
         if newItem.has_key( 'location' ):
+            if not newItem['location']:
+                start_response('200 OK', [('Content-Type','text/plain')])
+                return 'OK'
+
             type = 'location'
             data = newItem
             data['date'], data['time'] = dtFmt( datetime.utcnow() )
         elif type == 'qso':
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
+            if newItem['rda']:
+                newItem['rda'] = newItem['rda'].upper()
+            if newItem['wff']:
+                newItem['wff'] = newItem['wff'].upper()
             newItem['date'], newItem['time'] = dtFmt( dt )
         elif type == 'chat':
             newItem['cs'] = newItem['cs'].upper()
@@ -64,7 +72,7 @@ def application(env, start_response):
     with open( fp, 'w' ) as f:
         f.write( json.dumps( data, ensure_ascii = False ).encode('utf-8') )
     if type == 'news':
-        start_response('302 Found', [('Location','http://73.com/rda/index2.html')])
+        start_response('302 Found', [('Location','http://73.ru/rda/')])
         return
     else:
         start_response('200 OK', [('Content-Type','text/plain')])

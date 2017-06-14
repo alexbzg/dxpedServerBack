@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #coding=utf-8
 
-import json, logging
+import json, logging, os
 from urlparse import parse_qs
 from datetime import datetime 
 
@@ -27,6 +27,11 @@ def application(env, start_response):
         reqSize = 0
 
     type = ( env["PATH_INFO"].split( '/' ) )[-1]
+    if type == 'clearLog':
+        os.remove( webRoot + '/qso.json' )
+        start_response('302 Found', [('Location','http://73.ru/rda/')])
+        return
+  
     postData = env['wsgi.input'].read( reqSize )
     newItem = {}
     data = []
@@ -38,11 +43,13 @@ def application(env, start_response):
         newItem = json.loads( postData )
         if newItem.has_key( 'location' ):
             if not newItem['location']:
-                start_response('200 OK', [('Content-Type','text/plain')])
-                return 'OK'
+                prev = loadJSON( webRoot + '/location.json' )
+                if prev:
+                    newItem['location'] = prev['location']
 
             type = 'location'
             data = newItem
+            data['ts'] = int( datetime.now().strftime("%s") ) 
             data['date'], data['time'] = dtFmt( datetime.utcnow() )
         elif type == 'qso':
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )

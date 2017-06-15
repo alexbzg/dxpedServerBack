@@ -58,6 +58,14 @@ def application(env, start_response):
             if newItem['wff']:
                 newItem['wff'] = newItem['wff'].upper()
             newItem['date'], newItem['time'] = dtFmt( dt )
+            locFp = webRoot + '/location.json'
+            locData = loadJSON( locFp )
+            if not locData:
+                locData = {}
+            locData['ts'] = int( datetime.now().strftime("%s") ) 
+            with open( locFp, 'w' ) as f:
+                f.write( json.dumps( locData, ensure_ascii = False ).encode('utf-8') )
+
         elif type == 'chat':
             newItem['cs'] = newItem['cs'].upper()
             pwd = newItem['cs'].endswith(':123')

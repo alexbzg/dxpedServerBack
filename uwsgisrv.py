@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #coding=utf-8
 
-import json, logging, os
+import json, logging, os, shutil
 from urlparse import parse_qs
 from datetime import datetime 
 
@@ -18,6 +18,26 @@ regCS = conf.get( 'web', 'regCS' ).split(',')
 
 def dtFmt( dt ):
     return dt.strftime( '%d %b' ).lower(), dt.strftime( '%H:%Mz' )
+
+
+def updateLocation( newData ):
+    fp = webRoot + '/location.json'
+    data = loadJSON( locFp )
+    if not data:
+        data = {}
+    data['ts'] = int( datetime.now().strftime("%s") ) 
+    if newData['location']:
+        if data.has_key( 'location' ) and data['location']:
+            data['prev'] = { 'location': data['location'][:], \
+                    'ts': data['locTs'] }
+        data['locTs'] = data['ts']
+        data['location'] = newData['location']
+        data['loc'] = newData['loc']
+        data['rafa'] = newData['rafa']
+        if data.has_key( 'prev' ):
+            return
+    with open( locFp, 'w' ) as f:
+        f.write( json.dumps( locData, ensure_ascii = False ).encode('utf-8') )
 
 
 def application(env, start_response):
@@ -50,8 +70,21 @@ def application(env, start_response):
             type = 'location'
             data = newItem
             data['ts'] = int( datetime.now().strftime("%s") ) 
+            data['locTs'] = data['ts']
             data['date'], data['time'] = dtFmt( datetime.utcnow() )
+           
         elif type == 'qso':
+            fp = webRoot + '/qso.json'
+            data = loadJSON( fp )
+            if not data and os.path.isfile( fp ):
+                bakNo = 0
+                bakFp = fp + '.bak'
+                while os.path.isfile( bakFp ):
+                    bakNo += 1
+                    bakFp += str( bakNo )
+                shutil.copyfile( fp, bakFp )
+                data = []
+            data.insert( 0, newItem )
             dt = datetime.strptime( newItem['ts'], "%Y-%m-%d %H:%M:%S" )
             if newItem['rda']:
                 newItem['rda'] = newItem['rda'].upper()
@@ -66,7 +99,7 @@ def application(env, start_response):
             with open( locFp, 'w' ) as f:
                 f.write( json.dumps( locData, ensure_ascii = False ).encode('utf-8') )
 
-        elif type == 'chat':
+        elif type == 'chat' or type == 'users':
             newItem['cs'] = newItem['cs'].upper()
             pwd = newItem['cs'].endswith(':123')
             if pwd:
@@ -76,7 +109,25 @@ def application(env, start_response):
             if newItem['cs'] in regCS and not pwd:
                 start_response('403 Forbidden' )
                 return 'This callsign is password protected'
-            newItem['date'], newItem['time'] = dtFmt( datetime.utcnow() )
+            if type == 'chat':
+                newItem['date'], newItem['time'] = dtFmt( datetime.utcnow() )
+            elif type == 'users':
+                fp = webRoot + '/users.json'
+                data = loadJSON( fp )
+                if not data:
+                    data = {}
+                if newItem.has_key('delete'): 
+                    if data.has_key(newItem['cs']):
+                        del data[newItem['cs']]
+                else:
+                    data[newItem['cs']] = { 'tab': newItem['tab'], \
+                            'ts': int( datetime.now().strftime("%s") ) }
+                with open( fp, 'w' ) as f:
+                    f.write( json.dumps( data, ensure_ascii = False ).encode('utf-8') )
+                start_response('200 OK', [('Content-Type','text/plain')])
+                return 'OK'
+
+           
 
     fp = webRoot + '/' + type + '.json'
     if not data:

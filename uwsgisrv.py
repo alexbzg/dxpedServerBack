@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #coding=utf-8
 
-import json, logging, os, shutil
+import json, logging, os, shutil, math
 from urlparse import parse_qs
 from datetime import datetime 
 
@@ -19,13 +19,22 @@ regCS = conf.get( 'web', 'regCS' ).split(',')
 def dtFmt( dt ):
     return dt.strftime( '%d %b' ).lower(), dt.strftime( '%H:%Mz' )
 
+def sind( d ):
+    return math.sin( math.radians(d) )
+
+def cosd( d ):
+    return math.cos( math.radians(d) )
+
 
 def updateLocation( newData ):
     fp = webRoot + '/location.json'
-    data = loadJSON( locFp )
+    data = loadJSON( fp )
     if not data:
         data = {}
+    if not data.has_key( 'locTs' ) and data.has_key( 'ts' ):
+        data['locTs'] = data['ts']
     data['ts'] = int( datetime.now().strftime("%s") ) 
+    data['date'], data['time'] = dtFmt( datetime.utcnow() )    
     if newData['location']:
         if data.has_key( 'location' ) and data['location']:
             data['prev'] = { 'location': data['location'][:], \
@@ -35,9 +44,18 @@ def updateLocation( newData ):
         data['loc'] = newData['loc']
         data['rafa'] = newData['rafa']
         if data.has_key( 'prev' ):
-            return
-    with open( locFp, 'w' ) as f:
-        f.write( json.dumps( locData, ensure_ascii = False ).encode('utf-8') )
+            lat = [data['location'][1], data['prev']['location'][1]]
+            lon = [data['location'][0], data['prev']['location'][0]]
+            dlon = lon[0] - lon[1] 
+            dlat = lat[0] - lat[1] 
+            a = (sind(dlat/2))**2 + cosd(lat[0]) * cosd(lat[1]) * (sind(dlon/2)) ** 2
+            c = 2 * math.atan2( math.sqrt(a), math.sqrt(1-a) ) 
+            d = c * 6373            
+            data['d'] = d
+            data['dt'] = data['locTs'] - data['prev']['ts']
+            data['speed'] = d / ( float( data['locTs'] - data['prev']['ts'] ) / 3600 )
+    with open( fp, 'w' ) as f:
+        f.write( json.dumps( data, ensure_ascii = False ).encode('utf-8') )
 
 
 def application(env, start_response):
@@ -62,6 +80,10 @@ def application(env, start_response):
     else:
         newItem = json.loads( postData )
         if newItem.has_key( 'location' ):
+            updateLocation( newItem )
+            start_response('200 OK', [('Content-Type','text/plain')])
+            return 'OK'
+           
             if not newItem['location']:
                 prev = loadJSON( webRoot + '/location.json' )
                 if prev:

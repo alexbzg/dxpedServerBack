@@ -12,6 +12,7 @@ logging.basicConfig( level = logging.DEBUG,
         format='%(asctime)s %(message)s', 
         filename='/var/log/dxped_uwsgi.log',
         datefmt='%Y-%m-%d %H:%M:%S' )
+logging.debug( "restart" )
 conf = siteConf()
 webRoot = conf.get( 'web', 'root' )
 regCS = conf.get( 'web', 'regCS' ).split(',')
@@ -96,6 +97,7 @@ def application(env, start_response):
             data['date'], data['time'] = dtFmt( datetime.utcnow() )
            
         elif type == 'qso':
+            logging.debug( newItem )
             fp = webRoot + '/qso.json'
             data = loadJSON( fp )
             if not data and os.path.isfile( fp ):

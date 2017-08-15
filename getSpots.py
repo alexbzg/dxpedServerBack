@@ -20,7 +20,10 @@ newData = loadJSON( spotsSrcF )
 if not newData:
     logging.error( 'Spots data is empty' )
     raise SystemExit
-newData = [ x for x in newData if x['cs'] in ['R7AB', 'R7AB/M', 'R7AB/P'] ]
+newData = [ x for x in newData \
+        if x['country'] == 'Russia' and \
+        ( x['cs'].endswith( '/M' ) or x['cs'].endswith('/P') \
+        or x['cs'].endswith('/MM') ) ]
 data = loadJSON( spotsF )
 if not data:
     data =[]
@@ -31,8 +34,8 @@ for item in reversed(newData):
         break
     data.insert( idx, item )
     idx += 1
-if len( data ) > 10:
-    data = data[:9]
+if len( data ) > 20:
+    data = data[:20]
 with open( spotsF, 'w' ) as f:
     f.write( json.dumps( data, ensure_ascii = False ).encode('utf-8') )
 
